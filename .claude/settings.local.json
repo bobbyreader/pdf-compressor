@@ -13,7 +13,11 @@
       "Bash(npx vercel *)",
       "Bash(cat ~/.vercel/* 2>/dev/null || echo \"No cached token found\")",
       "Read(//c/Users/10472/**)",
-      "Bash(PORT=3001 node server.js)"
+      "Bash(PORT=3001 node server.js)",
+      "Bash(git push *)",
+      "Bash(nslookup pdf.botclaw.eu.cc 8.8.8.8)",
+      "Bash(nslookup -type=CNAME pdf.botclaw.eu.cc 8.8.8.8)",
+      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)"
     ]
   }
 }

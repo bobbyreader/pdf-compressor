@@ -463,7 +463,108 @@
         </div>
     </div>
 
+    <!-- 个人信息 -->
+    <div class="card profile-card">
+        <div class="profile-content">
+            <img src="assets/avatar.png" alt="Avatar" class="profile-avatar">
+            <div class="profile-info">
+                <h3 class="profile-name">Liu Wei</h3>
+                <p class="profile-bio">持续学习，不断精进</p>
+                <div class="profile-links">
+                    <a href="https://github.com/bobbyreader" target="_blank" class="profile-link">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        GitHub
+                    </a>
+                    <a href="#" class="profile-link license-link">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-1.25 17.292l-4.5-4.364 1.857-1.858 2.643 2.506 5.643-5.784 1.857 1.857-7.5 7.643z"/></svg>
+                        Free Forever
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<style>
+/* 个人信息卡片样式 */
+.profile-card {
+    margin-top: 20px;
+    padding: 24px !important;
+}
+
+.profile-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1d1d1f;
+    margin-bottom: 4px;
+}
+
+.profile-bio {
+    font-size: 14px;
+    color: #86868b;
+    margin-bottom: 12px;
+}
+
+.profile-links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.profile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(0,122,255,0.08);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #007AFF;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.profile-link:hover {
+    background: rgba(0,122,255,0.15);
+    transform: translateY(-1px);
+}
+
+.profile-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+@media (max-width: 500px) {
+    .profile-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .profile-links {
+        justify-content: center;
+    }
+}
+</style>
 
 <script src="app.js"></script>
 
