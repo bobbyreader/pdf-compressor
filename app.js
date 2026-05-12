@@ -40,6 +40,7 @@ let processingFiles = new Map();
 
 // PDF.js 全局变量
 let pdfjsLib = null;
+let pdfDocLib = null;
 
 // ===== 工具函数 =====
 function formatSize(bytes) {
@@ -103,17 +104,21 @@ function removeFile(index) {
     renderFileList();
 }
 
+function isReady() {
+    return pdfjsLib && pdfDocLib;
+}
+
 function renderFileList() {
     const list = document.getElementById("fileList");
     const btn = document.getElementById("btnCompress");
 
     if (selectedFiles.length === 0) {
         list.innerHTML = "";
-        btn.disabled = !pdfjsLib;
+        btn.disabled = !isReady();
         return;
     }
 
-    btn.disabled = !pdfjsLib;
+    btn.disabled = !isReady();
     list.innerHTML = selectedFiles
         .map((f, i) => {
             const status = processingFiles.get(i);
@@ -167,7 +172,7 @@ async function renderPageToCanvas(page, scale, canvas) {
 
 // ===== 使用 pdf-lib 创建新 PDF =====
 async function createCompressedPdfFromCanvases(canvases, settings, pageSize) {
-    const { PDFDocument, rgb } = PDFLib;
+    const { PDFDocument } = pdfDocLib;
 
     const pdfDoc = await PDFDocument.create();
 
@@ -212,7 +217,7 @@ async function createCompressedPdfFromCanvases(canvases, settings, pageSize) {
 
 // ===== 备用：仅使用 pdf-lib 的轻量级优化 =====
 async function lightCompressPdf(arrayBuffer) {
-    const { PDFDocument } = PDFLib;
+    const { PDFDocument } = pdfDocLib;
     const pdfDoc = await PDFDocument.load(arrayBuffer, {
         ignoreEncryption: true,
         updateMetadata: false,
@@ -345,7 +350,7 @@ async function compressSingleFile(file, quality, onProgress) {
 
 // ===== 开始压缩 =====
 async function startCompress() {
-    if (selectedFiles.length === 0 || !pdfjsLib) return;
+    if (selectedFiles.length === 0 || !isReady()) return;
 
     const btn = document.getElementById("btnCompress");
     const progressSection = document.getElementById("progressSection");
@@ -512,12 +517,13 @@ function downloadAllFiles() {
     });
 }
 
-// ===== 初始化 PDF.js =====
+// ===== 初始化 PDF.js 和 pdf-lib =====
 async function initPdfJs() {
     try {
+        updateStatus("正在加载 PDF 处理引擎...", "loading");
+
         // 加载 PDF.js
         const pdfJsUrl = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
-
         await new Promise((resolve, reject) => {
             const script = document.createElement("script");
             script.src = pdfJsUrl;
@@ -526,16 +532,27 @@ async function initPdfJs() {
             document.head.appendChild(script);
         });
 
-        // 设置 worker
         pdfjsLib = window.pdfjsLib;
         pdfjsLib.GlobalWorkerOptions.workerSrc =
             "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
 
+        // 加载 pdf-lib
+        const pdfLibUrl = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
+        await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = pdfLibUrl;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+
+        pdfDocLib = window.PDFLib;
+
         updateStatus("就绪 · 纯浏览器处理，保护隐私", "ok");
         document.getElementById("btnCompress").disabled = selectedFiles.length === 0;
     } catch (error) {
-        console.error("Failed to load PDF.js:", error);
-        updateStatus("PDF.js 加载失败，请刷新页面", "error");
+        console.error("Failed to load libraries:", error);
+        updateStatus("PDF 引擎加载失败，请刷新页面重试", "error");
         document.getElementById("btnCompress").disabled = true;
     }
 }
