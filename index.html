@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 压缩工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', sans-serif;
+            background: #F5F5F7;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1d1d1f;
+        }
+
+        .header {
+            text-align: center;
+            padding: 48px 20px 24px;
+        }
+
+        .header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 17px;
+            color: #86868b;
+            margin-top: 8px;
+            font-weight: 400;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+            padding: 0 20px 60px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.1);
+            padding: 32px;
+            margin-bottom: 20px;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .status-bar.loading { background: #FFF3E0; color: #E65100; }
+        .status-bar.ok { background: #E8F5E9; color: #2E7D32; }
+        .status-bar.error { background: #FFEBEE; color: #C62828; }
+
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-bar.loading .status-dot { background: #E65100; animation: pulse 1.2s infinite; }
+        .status-bar.ok .status-dot { background: #2E7D32; }
+        .status-bar.error .status-dot { background: #C62828; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* 拖拽上传区 */
+        .dropzone {
+            border: 2px dashed #C7C7CC;
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(245,245,247,0.5);
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: #007AFF;
+            background: rgba(0,122,255,0.04);
+        }
+
+        .dropzone-icon {
+            width: 56px; height: 56px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .dropzone h3 {
+            font-size: 18px; font-weight: 600; color: #1d1d1f;
+        }
+
+        .dropzone p {
+            font-size: 14px; color: #86868b; margin-top: 6px;
+        }
+
+        .dropzone input { display: none; }
+
+        /* 文件列表 */
+        .file-list {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(245,245,247,0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            font-size: 14px;
+        }
+
+        .file-item-icon {
+            width: 36px; height: 36px;
+            background: #FF3B30;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .file-item-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
+
+        .file-item-size {
+            color: #86868b;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .file-item-status {
+            color: #007AFF;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .file-item-remove {
+            background: none; border: none;
+            color: #86868b; cursor: pointer;
+            font-size: 18px; padding: 0 4px;
+            transition: color 0.2s;
+        }
+
+        .file-item-remove:hover { color: #FF3B30; }
+
+        /* 压缩选项 */
+        .quality-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .quality-option {
+            flex: 1;
+            padding: 16px 12px;
+            border-radius: 12px;
+            border: 2px solid #E5E5EA;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: #fff;
+        }
+
+        .quality-option:hover { border-color: #007AFF; }
+
+        .quality-option.active {
+            border-color: #007AFF;
+            background: rgba(0,122,255,0.06);
+        }
+
+        .quality-option h4 {
+            font-size: 15px; font-weight: 600; color: #1d1d1f;
+        }
+
+        .quality-option p {
+            font-size: 12px; color: #86868b; margin-top: 4px;
+        }
+
+        /* 压缩按钮 */
+        .btn-compress {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            margin-top: 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-compress:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0,122,255,0.35);
+        }
+
+        .btn-compress:active { transform: translateY(0); }
+
+        .btn-compress:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 进度区域 */
+        .progress-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-section.show { display: block; }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .progress-header span:first-child { color: #1d1d1f; font-weight: 500; }
+        .progress-header span:last-child { color: #86868b; }
+
+        .progress-bar {
+            height: 6px;
+            background: #E5E5EA;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007AFF, #5856D6);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-status {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #86868b;
+        }
+
+        /* 结果列表 */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.show { display: block; }
+
+        .results-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(245,245,247,0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin-bottom: 8px;
+        }
+
+        .result-item-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+
+        .result-item-icon.success { background: #E8F5E9; }
+        .result-item-icon.fail { background: #FFEBEE; }
+
+        .result-item-info { flex: 1; }
+
+        .result-item-name {
+            font-weight: 600; font-size: 15px;
+        }
+
+        .result-item-detail {
+            font-size: 13px; color: #86868b; margin-top: 4px;
+        }
+
+        .result-item-ratio {
+            font-size: 18px; font-weight: 700;
+            color: #34C759; flex-shrink: 0;
+        }
+
+        .result-item-ratio.negative { color: #FF9500; }
+
+        .result-error {
+            color: #FF3B30;
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .btn-download {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,122,255,0.35);
+        }
+
+        .results-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #86868b;
+        }
+
+        /* Toast 通知 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 999;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.error { background: #FF3B30; color: #fff; }
+        .toast.success { background: #34C759; color: #fff; }
+
+        @media (max-width: 600px) {
+            .header h1 { font-size: 32px; }
+            .quality-options { flex-direction: column; }
+            .card { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="header">
+    <h1>PDF 压缩工具</h1>
+    <p>浏览器端处理，保护隐私 · 部署在 Vercel</p>
+</div>
+
+<div class="container">
+
+    <!-- 状态栏 -->
+    <div class="card" style="padding: 16px 24px;">
+        <div class="status-bar ok" id="statusBar">
+            <div class="status-dot"></div>
+            <span id="statusText">就绪 · 纯浏览器处理，无需服务器</span>
+        </div>
+    </div>
+
+    <!-- 上传区域 -->
+    <div class="card">
+        <div class="dropzone" id="dropzone">
+            <div class="dropzone-icon">PDF</div>
+            <h3>拖拽 PDF 文件到此处</h3>
+            <p>或点击此处选择文件 · 支持批量上传</p>
+            <input type="file" id="fileInput" multiple accept=".pdf">
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <!-- 压缩选项 -->
+        <div class="quality-options">
+            <div class="quality-option" data-quality="light" onclick="selectQuality(this)">
+                <h4>轻度压缩</h4>
+                <p>高质量 · 小压缩</p>
+            </div>
+            <div class="quality-option active" data-quality="standard" onclick="selectQuality(this)">
+                <h4>标准压缩</h4>
+                <p>平衡 · 推荐</p>
+            </div>
+            <div class="quality-option" data-quality="extreme" onclick="selectQuality(this)">
+                <h4>极限压缩</h4>
+                <p>最大压缩率</p>
+            </div>
+        </div>
+
+        <!-- 压缩按钮 -->
+        <button class="btn-compress" id="btnCompress" onclick="startCompress()" disabled>
+            开始压缩
+        </button>
+
+        <!-- 进度条 -->
+        <div class="progress-section" id="progressSection">
+            <div class="progress-header">
+                <span id="progressLabel">正在压缩...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-status" id="progressStatus">准备中...</div>
+        </div>
+    </div>
+
+    <!-- 结果区域 -->
+    <div class="results-section" id="resultsSection">
+        <div class="card">
+            <div class="results-title" id="resultsTitle">压缩完成</div>
+            <div id="resultsList"></div>
+            <div class="results-footer" id="resultsFooter"></div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

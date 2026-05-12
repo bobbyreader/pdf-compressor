@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Python (旧版本)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+*.egg
+utils/__pycache__/
+
+# Local output
+output/
+
+# Temp files
+*.tmp
+*.temp

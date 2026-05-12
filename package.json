@@ -1,0 +1,12 @@
+{
+    "name": "pdf-compressor",
+    "version": "1.0.0",
+    "description": "Pure browser-based PDF compression tool",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node server.js"
+    },
+    "keywords": ["pdf", "compression", "browser"],
+    "license": "MIT"
+}
