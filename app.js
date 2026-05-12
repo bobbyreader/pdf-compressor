@@ -6,21 +6,21 @@
 const QUALITY_SETTINGS = {
     light: {
         label: "轻度压缩",
-        desc: "高质量，最小压缩",
-        jpegQuality: 0.92,      // 高质量 JPEG
-        scale: 1.0,             // 不缩放
+        desc: "几乎无损 · 体积略小",
+        jpegQuality: 0.95,
+        scale: 1.0,
     },
     standard: {
         label: "标准压缩",
-        desc: "中等质量，推荐使用",
-        jpegQuality: 0.75,      // 中等质量
-        scale: 1.0,             // 不缩放
+        desc: "良好平衡 · 推荐使用",
+        jpegQuality: 0.85,
+        scale: 1.0,
     },
     extreme: {
         label: "强力压缩",
-        desc: "最小体积，可能轻微模糊",
-        jpegQuality: 0.5,       // 低质量但可读
-        scale: 1.0,             // 不缩放尺寸
+        desc: "最小体积 · 保持可读",
+        jpegQuality: 0.7,
+        scale: 1.0,
     },
 };
 
