@@ -9,24 +9,56 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', sans-serif;
-            background: #F5F5F7;
+            background: linear-gradient(135deg, #0f0a1e 0%, #1a1033 50%, #0d1a2d 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            color: #1d1d1f;
+            color: #ffffff;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 背景光斑效果 */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
+            top: -150px;
+            left: -100px;
+        }
+
+        body::after {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
+            bottom: -100px;
+            right: -50px;
         }
 
         .header {
             text-align: center;
             padding: 48px 20px 24px;
+            position: relative;
+            z-index: 1;
         }
 
         .header h1 {
             font-size: 42px;
             font-weight: 700;
             letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #007AFF, #5856D6);
+            background: linear-gradient(135deg, #a78bfa, #60a5fa, #22d3ee);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -34,7 +66,7 @@
 
         .header p {
             font-size: 17px;
-            color: #86868b;
+            color: rgba(255, 255, 255, 0.6);
             margin-top: 8px;
             font-weight: 400;
         }
@@ -43,12 +75,17 @@
             width: 100%;
             max-width: 680px;
             padding: 0 20px 60px;
+            position: relative;
+            z-index: 1;
         }
 
         .card {
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             padding: 32px;
             margin-bottom: 20px;
         }
@@ -65,18 +102,18 @@
             transition: all 0.3s;
         }
 
-        .status-bar.loading { background: #FFF3E0; color: #E65100; }
-        .status-bar.ok { background: #E8F5E9; color: #2E7D32; }
-        .status-bar.error { background: #FFEBEE; color: #C62828; }
+        .status-bar.loading { background: rgba(255, 179, 0, 0.2); color: #ffb300; }
+        .status-bar.ok { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .status-bar.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
         .status-dot {
             width: 8px; height: 8px; border-radius: 50%;
             flex-shrink: 0;
         }
 
-        .status-bar.loading .status-dot { background: #E65100; animation: pulse 1.2s infinite; }
-        .status-bar.ok .status-dot { background: #2E7D32; }
-        .status-bar.error .status-dot { background: #C62828; }
+        .status-bar.loading .status-dot { background: #ffb300; animation: pulse 1.2s infinite; }
+        .status-bar.ok .status-dot { background: #22c55e; }
+        .status-bar.error .status-dot { background: #ef4444; }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -85,24 +122,24 @@
 
         /* 拖拽上传区 */
         .dropzone {
-            border: 2px dashed #C7C7CC;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
             border-radius: 16px;
             padding: 48px 24px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: rgba(245,245,247,0.5);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .dropzone:hover, .dropzone.dragover {
-            border-color: #007AFF;
-            background: rgba(0,122,255,0.04);
+            border-color: #a78bfa;
+            background: rgba(167, 139, 250, 0.1);
         }
 
         .dropzone-icon {
             width: 56px; height: 56px;
             margin: 0 auto 16px;
-            background: linear-gradient(135deg, #007AFF, #5856D6);
+            background: linear-gradient(135deg, #a78bfa, #60a5fa);
             border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
             color: #fff;
@@ -111,11 +148,11 @@
         }
 
         .dropzone h3 {
-            font-size: 18px; font-weight: 600; color: #1d1d1f;
+            font-size: 18px; font-weight: 600; color: #ffffff;
         }
 
         .dropzone p {
-            font-size: 14px; color: #86868b; margin-top: 6px;
+            font-size: 14px; color: rgba(255, 255, 255, 0.5); margin-top: 6px;
         }
 
         .dropzone input { display: none; }
@@ -134,15 +171,14 @@
             gap: 12px;
             padding: 12px 16px;
             border-radius: 12px;
-            background: rgba(245,245,247,0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
             font-size: 14px;
         }
 
         .file-item-icon {
             width: 36px; height: 36px;
-            background: #FF3B30;
+            background: linear-gradient(135deg, #f43f5e, #ec4899);
             border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
             color: #fff; font-weight: 700; font-size: 12px;
@@ -155,28 +191,29 @@
             overflow: hidden;
             text-overflow: ellipsis;
             font-weight: 500;
+            color: #ffffff;
         }
 
         .file-item-size {
-            color: #86868b;
+            color: rgba(255, 255, 255, 0.5);
             font-size: 13px;
             flex-shrink: 0;
         }
 
         .file-item-status {
-            color: #007AFF;
+            color: #a78bfa;
             font-size: 13px;
             flex-shrink: 0;
         }
 
         .file-item-remove {
             background: none; border: none;
-            color: #86868b; cursor: pointer;
+            color: rgba(255, 255, 255, 0.5); cursor: pointer;
             font-size: 18px; padding: 0 4px;
             transition: color 0.2s;
         }
 
-        .file-item-remove:hover { color: #FF3B30; }
+        .file-item-remove:hover { color: #f43f5e; }
 
         /* 压缩选项 */
         .quality-options {
@@ -189,26 +226,30 @@
             flex: 1;
             padding: 16px 12px;
             border-radius: 12px;
-            border: 2px solid #E5E5EA;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             text-align: center;
             cursor: pointer;
             transition: all 0.25s;
-            background: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
         }
 
-        .quality-option:hover { border-color: #007AFF; }
+        .quality-option:hover {
+            border-color: #a78bfa;
+            background: rgba(167, 139, 250, 0.1);
+        }
 
         .quality-option.active {
-            border-color: #007AFF;
-            background: rgba(0,122,255,0.06);
+            border-color: #a78bfa;
+            background: rgba(167, 139, 250, 0.15);
         }
 
         .quality-option h4 {
-            font-size: 15px; font-weight: 600; color: #1d1d1f;
+            font-size: 15px; font-weight: 600; color: #ffffff;
         }
 
         .quality-option p {
-            font-size: 12px; color: #86868b; margin-top: 4px;
+            font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-top: 4px;
         }
 
         /* 压缩按钮 */
@@ -222,7 +263,7 @@
             font-size: 17px;
             font-weight: 600;
             color: #fff;
-            background: linear-gradient(135deg, #007AFF, #5856D6);
+            background: linear-gradient(135deg, #a78bfa, #60a5fa);
             cursor: pointer;
             transition: all 0.3s;
             letter-spacing: 0.3px;
@@ -230,7 +271,7 @@
 
         .btn-compress:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(0,122,255,0.35);
+            box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4);
         }
 
         .btn-compress:active { transform: translateY(0); }
@@ -257,19 +298,19 @@
             margin-bottom: 8px;
         }
 
-        .progress-header span:first-child { color: #1d1d1f; font-weight: 500; }
-        .progress-header span:last-child { color: #86868b; }
+        .progress-header span:first-child { color: #ffffff; font-weight: 500; }
+        .progress-header span:last-child { color: rgba(255, 255, 255, 0.5); }
 
         .progress-bar {
             height: 6px;
-            background: #E5E5EA;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 3px;
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #007AFF, #5856D6);
+            background: linear-gradient(90deg, #a78bfa, #60a5fa);
             border-radius: 3px;
             transition: width 0.3s ease;
             width: 0%;
@@ -278,7 +319,7 @@
         .progress-status {
             margin-top: 8px;
             font-size: 13px;
-            color: #86868b;
+            color: rgba(255, 255, 255, 0.5);
         }
 
         /* 结果列表 */
@@ -292,6 +333,7 @@
             font-size: 20px;
             font-weight: 700;
             margin-bottom: 16px;
+            color: #ffffff;
         }
 
         .result-item {
@@ -300,9 +342,8 @@
             gap: 12px;
             padding: 16px;
             border-radius: 12px;
-            background: rgba(245,245,247,0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
             margin-bottom: 8px;
         }
 
@@ -313,28 +354,29 @@
             font-size: 20px; flex-shrink: 0;
         }
 
-        .result-item-icon.success { background: #E8F5E9; }
-        .result-item-icon.fail { background: #FFEBEE; }
+        .result-item-icon.success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .result-item-icon.fail { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
         .result-item-info { flex: 1; }
 
         .result-item-name {
             font-weight: 600; font-size: 15px;
+            color: #ffffff;
         }
 
         .result-item-detail {
-            font-size: 13px; color: #86868b; margin-top: 4px;
+            font-size: 13px; color: rgba(255, 255, 255, 0.5); margin-top: 4px;
         }
 
         .result-item-ratio {
             font-size: 18px; font-weight: 700;
-            color: #34C759; flex-shrink: 0;
+            color: #22c55e; flex-shrink: 0;
         }
 
-        .result-item-ratio.negative { color: #FF9500; }
+        .result-item-ratio.negative { color: #fbbf24; }
 
         .result-error {
-            color: #FF3B30;
+            color: #ef4444;
             font-size: 13px;
             margin-top: 2px;
         }
@@ -346,7 +388,7 @@
             font-size: 14px;
             font-weight: 600;
             color: #fff;
-            background: linear-gradient(135deg, #007AFF, #5856D6);
+            background: linear-gradient(135deg, #a78bfa, #60a5fa);
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 8px;
@@ -354,14 +396,14 @@
 
         .btn-download:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,122,255,0.35);
+            box-shadow: 0 4px 12px rgba(167, 139, 250, 0.4);
         }
 
         .results-footer {
             text-align: center;
             margin-top: 20px;
             font-size: 14px;
-            color: #86868b;
+            color: rgba(255, 255, 255, 0.5);
         }
 
         /* Toast 通知 */
@@ -376,17 +418,98 @@
             font-weight: 500;
             z-index: 999;
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            color: #fff;
         }
 
         .toast.show { transform: translateX(-50%) translateY(0); }
-        .toast.error { background: #FF3B30; color: #fff; }
-        .toast.success { background: #34C759; color: #fff; }
+        .toast.error { background: #ef4444; }
+        .toast.success { background: #22c55e; }
+
+        /* 个人信息卡片样式 */
+        .profile-card {
+            margin-top: 20px;
+            padding: 24px !important;
+        }
+
+        .profile-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .profile-bio {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 12px;
+        }
+
+        .profile-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .profile-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(167, 139, 250, 0.2);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #a78bfa;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: 1px solid rgba(167, 139, 250, 0.3);
+        }
+
+        .profile-link:hover {
+            background: rgba(167, 139, 250, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .profile-link svg {
+            width: 16px;
+            height: 16px;
+        }
 
         @media (max-width: 600px) {
             .header h1 { font-size: 32px; }
             .quality-options { flex-direction: column; }
             .card { padding: 24px; }
+        }
+
+        @media (max-width: 500px) {
+            .profile-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .profile-links {
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -485,86 +608,6 @@
     </div>
 
 </div>
-
-<style>
-/* 个人信息卡片样式 */
-.profile-card {
-    margin-top: 20px;
-    padding: 24px !important;
-}
-
-.profile-content {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.profile-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-.profile-info {
-    flex: 1;
-}
-
-.profile-name {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1d1d1f;
-    margin-bottom: 4px;
-}
-
-.profile-bio {
-    font-size: 14px;
-    color: #86868b;
-    margin-bottom: 12px;
-}
-
-.profile-links {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.profile-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: rgba(0,122,255,0.08);
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #007AFF;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-
-.profile-link:hover {
-    background: rgba(0,122,255,0.15);
-    transform: translateY(-1px);
-}
-
-.profile-link svg {
-    width: 16px;
-    height: 16px;
-}
-
-@media (max-width: 500px) {
-    .profile-content {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .profile-links {
-        justify-content: center;
-    }
-}
-</style>
 
 <script src="app.js"></script>
 
