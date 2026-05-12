@@ -6,30 +6,21 @@
 const QUALITY_SETTINGS = {
     light: {
         label: "轻度压缩",
-        desc: "高质量，较小压缩",
-        jpegQuality: 0.85,
-        scale: 1.0,          // 不缩放
-        dpi: 150,           // 150 DPI
-        removeAnnotations: false,
-        removeForms: false,
+        desc: "高质量，最小压缩",
+        jpegQuality: 0.92,      // 高质量 JPEG
+        scale: 1.0,             // 不缩放
     },
     standard: {
         label: "标准压缩",
-        desc: "中等质量和大小",
-        jpegQuality: 0.6,
-        scale: 0.8,          // 80% 缩放
-        dpi: 120,            // 120 DPI
-        removeAnnotations: true,
-        removeForms: true,
+        desc: "中等质量，推荐使用",
+        jpegQuality: 0.75,      // 中等质量
+        scale: 1.0,             // 不缩放
     },
     extreme: {
-        label: "极限压缩",
-        desc: "最低质量，最大压缩",
-        jpegQuality: 0.4,
-        scale: 0.5,          // 50% 缩放
-        dpi: 72,             // 72 DPI
-        removeAnnotations: true,
-        removeForms: true,
+        label: "强力压缩",
+        desc: "最小体积，可能轻微模糊",
+        jpegQuality: 0.5,       // 低质量但可读
+        scale: 1.0,             // 不缩放尺寸
     },
 };
 

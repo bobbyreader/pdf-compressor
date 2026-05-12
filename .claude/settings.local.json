@@ -12,7 +12,8 @@
       "Bash(vercel --yes --prod)",
       "Bash(npx vercel *)",
       "Bash(cat ~/.vercel/* 2>/dev/null || echo \"No cached token found\")",
-      "Read(//c/Users/10472/**)"
+      "Read(//c/Users/10472/**)",
+      "Bash(PORT=3001 node server.js)"
     ]
   }
 }
