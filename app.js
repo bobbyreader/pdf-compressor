@@ -1,40 +1,47 @@
 /**
- * PDF 压缩工具 - 纯前端版本
- * 使用 pdf-lib 在浏览器中处理 PDF
+ * PDF 压缩工具 - 纯前端版本 (增强版)
+ * 使用 PDF.js + Canvas 重绘页面 + 图片压缩
  */
 
-const { PDFDocument } = PDFLib;
-
-// 压缩质量配置
 const QUALITY_SETTINGS = {
     light: {
         label: "轻度压缩",
         desc: "高质量，较小压缩",
-        imageQuality: 0.9,
-        maxImageSize: 2048,
+        jpegQuality: 0.85,
+        scale: 1.0,          // 不缩放
+        dpi: 150,           // 150 DPI
+        removeAnnotations: false,
+        removeForms: false,
     },
     standard: {
         label: "标准压缩",
         desc: "中等质量和大小",
-        imageQuality: 0.7,
-        maxImageSize: 1536,
+        jpegQuality: 0.6,
+        scale: 0.8,          // 80% 缩放
+        dpi: 120,            // 120 DPI
+        removeAnnotations: true,
+        removeForms: true,
     },
     extreme: {
         label: "极限压缩",
         desc: "最低质量，最大压缩",
-        imageQuality: 0.5,
-        maxImageSize: 1024,
+        jpegQuality: 0.4,
+        scale: 0.5,          // 50% 缩放
+        dpi: 72,             // 72 DPI
+        removeAnnotations: true,
+        removeForms: true,
     },
 };
 
 // 全局状态
 let selectedFiles = [];
 let currentQuality = "standard";
-let processingFiles = new Map(); // fileIndex -> { status, progress, result }
+let processingFiles = new Map();
 
-/**
- * 格式化文件大小
- */
+// PDF.js 全局变量
+let pdfjsLib = null;
+
+// ===== 工具函数 =====
 function formatSize(bytes) {
     if (bytes === 0) return "0 B";
     const units = ["B", "KB", "MB", "GB"];
@@ -42,23 +49,24 @@ function formatSize(bytes) {
     return (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + " " + units[i];
 }
 
-/**
- * HTML 转义
- */
 function escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
 }
 
-/**
- * 显示 Toast 提示
- */
 function showToast(msg, type = "success") {
     const toast = document.getElementById("toast");
     toast.textContent = msg;
     toast.className = `toast ${type} show`;
     setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
+function updateStatus(text, type = "ok") {
+    const statusBar = document.getElementById("statusBar");
+    const statusText = document.getElementById("statusText");
+    statusBar.className = `status-bar ${type}`;
+    statusText.textContent = text;
 }
 
 // ===== 文件选择处理 =====
@@ -101,11 +109,11 @@ function renderFileList() {
 
     if (selectedFiles.length === 0) {
         list.innerHTML = "";
-        btn.disabled = true;
+        btn.disabled = !pdfjsLib;
         return;
     }
 
-    btn.disabled = false;
+    btn.disabled = !pdfjsLib;
     list.innerHTML = selectedFiles
         .map((f, i) => {
             const status = processingFiles.get(i);
@@ -137,20 +145,80 @@ function selectQuality(el) {
     currentQuality = el.dataset.quality;
 }
 
-// ===== PDF 压缩核心逻辑 =====
-async function compressPdfArrayBuffer(arrayBuffer, quality) {
-    const settings = QUALITY_SETTINGS[quality];
+// ===== PDF.js 页面渲染为 Canvas =====
+async function renderPageToCanvas(page, scale, canvas) {
+    const viewport = page.getViewport({ scale });
 
-    // 加载 PDF
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    const context = canvas.getContext("2d");
+    context.fillStyle = "white";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+    };
+
+    await page.render(renderContext).promise;
+    return viewport;
+}
+
+// ===== 使用 pdf-lib 创建新 PDF =====
+async function createCompressedPdfFromCanvases(canvases, settings, pageSize) {
+    const { PDFDocument, rgb } = PDFLib;
+
+    const pdfDoc = await PDFDocument.create();
+
+    for (let i = 0; i < canvases.length; i++) {
+        const canvas = canvases[i];
+        const imageData = canvas.toDataURL("image/jpeg", settings.jpegQuality);
+
+        // 将 data URL 转换为 bytes
+        const base64 = imageData.split(",")[1];
+        const imageBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+        let image;
+        if (canvas.width > canvas.height) {
+            image = await pdfDoc.embedJpg(imageBytes);
+        } else {
+            image = await pdfDoc.embedJpg(imageBytes);
+        }
+
+        // 计算页面尺寸
+        const pageWidth = canvas.width;
+        const pageHeight = canvas.height;
+
+        const page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+        // 绘制图片填满整个页面
+        page.drawImage(image, {
+            x: 0,
+            y: 0,
+            width: pageWidth,
+            height: pageHeight,
+        });
+    }
+
+    // 保存并返回 bytes
+    const pdfBytes = await pdfDoc.save({
+        useObjectStreams: true,
+        addDefaultPage: false,
+    });
+
+    return pdfBytes;
+}
+
+// ===== 备用：仅使用 pdf-lib 的轻量级优化 =====
+async function lightCompressPdf(arrayBuffer) {
+    const { PDFDocument } = PDFLib;
     const pdfDoc = await PDFDocument.load(arrayBuffer, {
         ignoreEncryption: true,
         updateMetadata: false,
     });
 
-    // 获取页面数量
-    const pageCount = pdfDoc.getPageCount();
-
-    // 移除文档信息（减小文件大小）
+    // 移除元数据
     pdfDoc.setTitle("");
     pdfDoc.setAuthor("");
     pdfDoc.setSubject("");
@@ -158,59 +226,108 @@ async function compressPdfArrayBuffer(arrayBuffer, quality) {
     pdfDoc.setProducer("");
     pdfDoc.setCreator("");
 
-    // 移除 XMP 元数据
-    // pdf-lib 不直接支持移除 XMP，但我们可以设置一些基本属性
-
-    // 嵌入所有字体（确保一致性）
-    const fontKit = pdfDoc.context.promise;
-
-    // 保存压缩后的 PDF
     const compressedBytes = await pdfDoc.save({
         useObjectStreams: true,
         addDefaultPage: false,
-        // objects Leibermensch, 2024. "pdf-lib."
         preserveEditability: false,
     });
 
     return compressedBytes;
 }
 
-/**
- * 压缩单个 PDF 文件
- */
-async function compressSingleFile(file, quality) {
+// ===== 核心压缩函数 =====
+async function compressSingleFile(file, quality, onProgress) {
     const settings = QUALITY_SETTINGS[quality];
     const originalSize = file.size;
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        const compressedBytes = await compressPdfArrayBuffer(arrayBuffer, quality);
+
+        // 加载 PDF
+        updateStatus(`正在加载: ${file.name}`, "loading");
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdfDoc = await loadingTask.promise;
+        const numPages = pdfDoc.numPages;
+
+        // 创建临时 canvas
+        const tempCanvas = document.createElement("canvas");
+        const canvases = [];
+
+        // 逐页渲染
+        for (let i = 1; i <= numPages; i++) {
+            updateStatus(`正在渲染第 ${i}/${numPages} 页...`, "loading");
+
+            if (onProgress) {
+                onProgress((i / numPages) * 100, i, numPages);
+            }
+
+            const page = await pdfDoc.getPage(i);
+
+            // 获取原始页面尺寸
+            const viewport = page.getViewport({ scale: 1 });
+            const originalWidth = viewport.width;
+            const originalHeight = viewport.height;
+
+            // 根据质量设置缩放
+            const targetWidth = Math.round(originalWidth * settings.scale);
+            const targetHeight = Math.round(originalHeight * settings.scale);
+
+            tempCanvas.width = targetWidth;
+            tempCanvas.height = targetHeight;
+
+            await renderPageToCanvas(page, settings.scale, tempCanvas);
+            canvases.push(tempCanvas.cloneNode(false));
+            const newCanvas = canvases[canvases.length - 1];
+            newCanvas.width = targetWidth;
+            newCanvas.height = targetHeight;
+            const ctx = newCanvas.getContext("2d");
+            ctx.drawImage(tempCanvas, 0, 0, targetWidth, targetHeight);
+        }
+
+        updateStatus("正在生成压缩文件...", "loading");
+
+        // 创建压缩后的 PDF
+        const compressedBytes = await createCompressedPdfFromCanvases(
+            canvases,
+            settings,
+            null
+        );
 
         const compressedSize = compressedBytes.length;
 
-        // 如果压缩后反而更大，返回原文件
-        if (compressedSize >= originalSize) {
-            return {
-                success: true,
-                originalSize,
-                compressedSize: originalSize,
-                ratio: 0,
-                blob: new Blob([arrayBuffer], { type: "application/pdf" }),
-                filename: file.name.replace(/\.pdf$/i, "_compressed.pdf"),
-                message: "文件已优化但大小相近",
-            };
-        }
+        // 计算压缩比
+        let ratio = 0;
+        let message = "";
+        let blob;
 
-        const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+        if (compressedSize >= originalSize) {
+            // 如果压缩后反而更大，尝试轻量级压缩
+            updateStatus("正在尝试轻量级优化...", "loading");
+            const lightBytes = await lightCompressPdf(arrayBuffer);
+
+            if (lightBytes.length < originalSize) {
+                ratio = ((1 - lightBytes.length / originalSize) * 100).toFixed(1);
+                blob = new Blob([lightBytes], { type: "application/pdf" });
+                compressedSize = lightBytes.length;
+                message = "轻量级优化";
+            } else {
+                ratio = 0;
+                blob = new Blob([arrayBuffer], { type: "application/pdf" });
+                message = "文件已是最优";
+            }
+        } else {
+            ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+            blob = new Blob([compressedBytes], { type: "application/pdf" });
+        }
 
         return {
             success: true,
             originalSize,
             compressedSize,
             ratio: parseFloat(ratio),
-            blob: new Blob([compressedBytes], { type: "application/pdf" }),
+            blob,
             filename: file.name.replace(/\.pdf$/i, "_compressed.pdf"),
-            message: "",
+            message,
         };
     } catch (error) {
         console.error("Compression error:", error);
@@ -228,7 +345,7 @@ async function compressSingleFile(file, quality) {
 
 // ===== 开始压缩 =====
 async function startCompress() {
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0 || !pdfjsLib) return;
 
     const btn = document.getElementById("btnCompress");
     const progressSection = document.getElementById("progressSection");
@@ -241,10 +358,8 @@ async function startCompress() {
     progressSection.classList.add("show");
     document.getElementById("resultsSection").classList.remove("show");
 
-    // 初始化处理状态
     processingFiles.clear();
     const results = [];
-
     const total = selectedFiles.length;
 
     for (let i = 0; i < total; i++) {
@@ -257,14 +372,23 @@ async function startCompress() {
         progressFill.style.width = `${currentProgress}%`;
         progressStatus.textContent = `文件 ${i + 1} / ${total}`;
 
-        const result = await compressSingleFile(selectedFiles[i], currentQuality);
+        const result = await compressSingleFile(
+            selectedFiles[i],
+            currentQuality,
+            (pct, page, totalPages) => {
+                const overallPct = ((i + pct / 100) / total) * 100;
+                progressFill.style.width = `${overallPct.toFixed(0)}%`;
+                progressPercent.textContent = `${overallPct.toFixed(0)}%`;
+                progressStatus.textContent = `第 ${page}/${totalPages} 页`;
+            }
+        );
+
         result.filename = selectedFiles[i].name;
         results.push(result);
 
         processingFiles.set(i, { status: "done", progress: 100, result });
         renderFileList();
 
-        // 短暂延迟以允许 UI 更新
         await new Promise((r) => setTimeout(r, 100));
     }
 
@@ -272,6 +396,8 @@ async function startCompress() {
     progressPercent.textContent = "100%";
     progressLabel.textContent = "压缩完成";
     progressStatus.textContent = `共处理 ${total} 个文件`;
+
+    updateStatus("压缩完成 · 纯浏览器处理，保护隐私", "ok");
 
     setTimeout(() => {
         showResults(results);
@@ -335,7 +461,6 @@ function showResults(results) {
         })
         .join("");
 
-    // 添加批量下载按钮
     if (successResults.length > 1) {
         footer.innerHTML = `<button class="btn-download" onclick="downloadAllFiles()">下载全部文件 (${successResults.length} 个)</button>`;
     } else {
@@ -345,7 +470,6 @@ function showResults(results) {
     section.classList.add("show");
     section.scrollIntoView({ behavior: "smooth", block: "start" });
 
-    // 保存结果供下载使用
     window.compressionResults = results;
 }
 
@@ -373,13 +497,11 @@ function downloadAllFiles() {
         return;
     }
 
-    // 如果只有一个文件，直接下载
     if (successResults.length === 1) {
         downloadFile(0);
         return;
     }
 
-    // 多个文件，逐个下载（浏览器限制）
     showToast(`正在下载 ${successResults.length} 个文件...`, "success");
 
     successResults.forEach((result, i) => {
@@ -390,19 +512,36 @@ function downloadAllFiles() {
     });
 }
 
+// ===== 初始化 PDF.js =====
+async function initPdfJs() {
+    try {
+        // 加载 PDF.js
+        const pdfJsUrl = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+
+        await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = pdfJsUrl;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+
+        // 设置 worker
+        pdfjsLib = window.pdfjsLib;
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+
+        updateStatus("就绪 · 纯浏览器处理，保护隐私", "ok");
+        document.getElementById("btnCompress").disabled = selectedFiles.length === 0;
+    } catch (error) {
+        console.error("Failed to load PDF.js:", error);
+        updateStatus("PDF.js 加载失败，请刷新页面", "error");
+        document.getElementById("btnCompress").disabled = true;
+    }
+}
+
 // ===== 初始化 =====
 document.addEventListener("DOMContentLoaded", () => {
-    // 检查 pdf-lib 是否加载
-    if (typeof PDFLib === "undefined") {
-        const statusBar = document.getElementById("statusBar");
-        const statusText = document.getElementById("statusText");
-        statusBar.className = "status-bar error";
-        statusText.textContent = "PDF 库加载失败，请刷新页面重试";
-        document.getElementById("btnCompress").disabled = true;
-    } else {
-        const statusBar = document.getElementById("statusBar");
-        const statusText = document.getElementById("statusText");
-        statusBar.className = "status-bar ok";
-        statusText.textContent = "就绪 · 纯浏览器处理，保护隐私";
-    }
+    updateStatus("正在加载 PDF 处理引擎...", "loading");
+    initPdfJs();
 });

@@ -53,8 +53,8 @@
             margin-bottom: 20px;
         }
 
-        /* 状态栏 */
-        .status-bar {
+        /* 环境状态栏 */
+        .env-bar {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -65,18 +65,18 @@
             transition: all 0.3s;
         }
 
-        .status-bar.loading { background: #FFF3E0; color: #E65100; }
-        .status-bar.ok { background: #E8F5E9; color: #2E7D32; }
-        .status-bar.error { background: #FFEBEE; color: #C62828; }
+        .env-bar.loading { background: #FFF3E0; color: #E65100; }
+        .env-bar.ok { background: #E8F5E9; color: #2E7D32; }
+        .env-bar.error { background: #FFEBEE; color: #C62828; }
 
-        .status-dot {
+        .env-dot {
             width: 8px; height: 8px; border-radius: 50%;
             flex-shrink: 0;
         }
 
-        .status-bar.loading .status-dot { background: #E65100; animation: pulse 1.2s infinite; }
-        .status-bar.ok .status-dot { background: #2E7D32; }
-        .status-bar.error .status-dot { background: #C62828; }
+        .env-bar.loading .env-dot { background: #E65100; animation: pulse 1.2s infinite; }
+        .env-bar.ok .env-dot { background: #2E7D32; }
+        .env-bar.error .env-dot { background: #C62828; }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -159,12 +159,6 @@
 
         .file-item-size {
             color: #86868b;
-            font-size: 13px;
-            flex-shrink: 0;
-        }
-
-        .file-item-status {
-            color: #007AFF;
             font-size: 13px;
             flex-shrink: 0;
         }
@@ -339,24 +333,6 @@
             margin-top: 2px;
         }
 
-        .btn-download {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            color: #fff;
-            background: linear-gradient(135deg, #007AFF, #5856D6);
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 8px;
-        }
-
-        .btn-download:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,122,255,0.35);
-        }
-
         .results-footer {
             text-align: center;
             margin-top: 20px;
@@ -396,16 +372,16 @@
 
 <div class="header">
     <h1>PDF 压缩工具</h1>
-    <p>浏览器端处理，保护隐私 · 部署在 Vercel</p>
+    <p>快速压缩 PDF 文件，保留最佳质量</p>
 </div>
 
 <div class="container">
 
-    <!-- 状态栏 -->
+    <!-- 环境状态 -->
     <div class="card" style="padding: 16px 24px;">
-        <div class="status-bar ok" id="statusBar">
-            <div class="status-dot"></div>
-            <span id="statusText">就绪 · 纯浏览器处理，无需服务器</span>
+        <div class="env-bar loading" id="envBar">
+            <div class="env-dot"></div>
+            <span id="envText">正在检查运行环境...</span>
         </div>
     </div>
 
@@ -465,7 +441,219 @@
 
 </div>
 
-<script src="app.js"></script>
+<script>
+    let selectedFiles = [];
+    let currentQuality = 'standard';
+
+    // ===== 环境检查 =====
+    async function checkEnv() {
+        const bar = document.getElementById('envBar');
+        const text = document.getElementById('envText');
+        try {
+            const res = await fetch('/api/check-env');
+            const data = await res.json();
+            if (data.ok) {
+                bar.className = 'env-bar ok';
+                text.textContent = '环境就绪，可以开始压缩';
+                document.getElementById('btnCompress').disabled = selectedFiles.length === 0;
+            } else {
+                const missing = data.details.filter(d => !d.ok).map(d => d.name).join('、');
+                bar.className = 'env-bar error';
+                text.textContent = `缺少依赖: ${missing}，请检查安装`;
+            }
+        } catch (e) {
+            bar.className = 'env-bar error';
+            text.textContent = '无法连接服务，请检查服务是否已启动';
+        }
+    }
+
+    // ===== 文件选择 =====
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        addFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', e => addFiles(e.target.files));
+
+    function addFiles(fileList) {
+        for (const f of fileList) {
+            if (f.type === 'application/pdf' && !selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+                selectedFiles.push(f);
+            }
+        }
+        renderFileList();
+    }
+
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        renderFileList();
+    }
+
+    function renderFileList() {
+        const list = document.getElementById('fileList');
+        const btn = document.getElementById('btnCompress');
+        if (selectedFiles.length === 0) {
+            list.innerHTML = '';
+            btn.disabled = true;
+            return;
+        }
+        btn.disabled = false;
+        list.innerHTML = selectedFiles.map((f, i) => `
+            <div class="file-item">
+                <div class="file-item-icon">PDF</div>
+                <div class="file-item-name">${escapeHtml(f.name)}</div>
+                <div class="file-item-size">${formatSize(f.size)}</div>
+                <button class="file-item-remove" onclick="removeFile(${i})">&times;</button>
+            </div>
+        `).join('');
+    }
+
+    // ===== 压缩选项 =====
+    function selectQuality(el) {
+        document.querySelectorAll('.quality-option').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
+        currentQuality = el.dataset.quality;
+    }
+
+    // ===== 压缩执行 =====
+    async function startCompress() {
+        if (selectedFiles.length === 0) return;
+
+        const btn = document.getElementById('btnCompress');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const progressLabel = document.getElementById('progressLabel');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressStatus = document.getElementById('progressStatus');
+
+        btn.disabled = true;
+        progressSection.classList.add('show');
+        document.getElementById('resultsSection').classList.remove('show');
+
+        const formData = new FormData();
+        selectedFiles.forEach(f => formData.append('files', f));
+        formData.append('quality', currentQuality);
+
+        // 模拟进度
+        let progress = 0;
+        const progressTimer = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.random() * 8;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+                progressPercent.textContent = Math.round(progress) + '%';
+            }
+        }, 400);
+
+        progressLabel.textContent = '正在压缩...';
+        progressStatus.textContent = `共 ${selectedFiles.length} 个文件，请稍候`;
+
+        try {
+            const res = await fetch('/api/compress', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            clearInterval(progressTimer);
+            progressFill.style.width = '100%';
+            progressPercent.textContent = '100%';
+
+            if (data.success) {
+                progressLabel.textContent = '压缩完成';
+                progressStatus.textContent = '';
+                setTimeout(() => showResults(data), 400);
+            } else {
+                progressLabel.textContent = '压缩失败';
+                progressStatus.textContent = data.error || '请检查文件或环境配置';
+                showToast(data.error || '压缩失败', 'error');
+            }
+        } catch (e) {
+            clearInterval(progressTimer);
+            progressLabel.textContent = '请求失败';
+            progressStatus.textContent = '无法连接服务';
+            showToast('网络错误，请检查服务是否运行', 'error');
+        }
+
+        btn.disabled = false;
+    }
+
+    // ===== 显示结果 =====
+    function showResults(data) {
+        const section = document.getElementById('resultsSection');
+        const list = document.getElementById('resultsList');
+        const title = document.getElementById('resultsTitle');
+        const footer = document.getElementById('resultsFooter');
+
+        title.textContent = `压缩完成 · 成功 ${data.success_count}/${data.total}`;
+
+        list.innerHTML = data.results.map(r => {
+            if (r.success) {
+                const ratioClass = r.ratio > 0 ? '' : 'negative';
+                const ratioText = r.ratio > 0 ? `-${r.ratio}%` : `+${Math.abs(r.ratio)}%`;
+                return `
+                    <div class="result-item">
+                        <div class="result-item-icon success">&#10003;</div>
+                        <div class="result-item-info">
+                            <div class="result-item-name">${escapeHtml(r.filename)}</div>
+                            <div class="result-item-detail">
+                                ${formatSize(r.original_size)} → ${formatSize(r.compressed_size)}
+                                · ${r.quality_label}
+                            </div>
+                        </div>
+                        <div class="result-item-ratio ${ratioClass}">${ratioText}</div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="result-item">
+                        <div class="result-item-icon fail">&#10007;</div>
+                        <div class="result-item-info">
+                            <div class="result-item-name">${escapeHtml(r.filename)}</div>
+                            <div class="result-error">${escapeHtml(r.error)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+
+        footer.textContent = '文件已保存到桌面';
+
+        section.classList.add('show');
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // 清空文件列表
+        selectedFiles = [];
+        renderFileList();
+    }
+
+    // ===== 工具函数 =====
+    function formatSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showToast(msg, type) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = `toast ${type} show`;
+        setTimeout(() => { toast.classList.remove('show'); }, 3000);
+    }
+
+    // ===== 初始化 =====
+    checkEnv();
+</script>
 
 </body>
 </html>

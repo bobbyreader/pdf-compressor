@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(git config *)",
+      "Bash(ssh -T git@github.com)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh repo *)",
+      "Bash(vercel --yes --prod)",
+      "Bash(npx vercel *)",
+      "Bash(cat ~/.vercel/* 2>/dev/null || echo \"No cached token found\")",
+      "Read(//c/Users/10472/**)"
+    ]
+  }
+}
