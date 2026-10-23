@@ -1,44 +1,36 @@
-# PDF Compressor - Frontend Only Version
+# PDF Compressor - 纯浏览器版（保真压缩）
 
-A pure browser-based PDF compression tool that can be deployed to Vercel.
+一个纯浏览器端运行的 PDF 压缩工具，部署在 Vercel：https://pdf.botclaw.eu.cc/
 
-## Tech Stack
+## 压缩原理（保真模式，默认）
 
-- **Frontend**: Vanilla JS + CSS
-- **PDF Processing**: pdf-lib (runs entirely in browser)
-- **Deployment**: Vercel (static + serverless functions)
+只重压缩 PDF 内嵌的图片，文字、矢量、链接、表单、书签全部原样保留，压完文字依然可选、可搜：
 
-## Features
+1. 用 pdf-lib 遍历文档中的图片流（XObject）；
+2. JPEG 图片解码后按档位缩放上限与质量重编码；FlateDecode 的 RGB/Gray 原始像素（8 位、含 PNG/TIFF 预测器）解码后转 JPEG；
+3. 仅当新图确实更小（< 原图 98%）才替换，最后用对象流重保存做结构优化；
+4. 没有图片可压、或压完不更小时，原样返回并给出提示，不会把文件越压越大。
 
-- Drag & drop PDF upload
-- Three compression levels: Light, Standard, Extreme
-- Batch processing
-- Download compressed files
+已知限制（这些情况保留原图并计数提示）：带透明遮罩（SMask/Mask）的图片、CMYK 与 JPEG2000（JPX）、传真编码（CCITT）、JBIG2、非 8 位色深、内容流里的内联图片（BI/ID/EI)。
 
-## Local Development
+第四档「整页图片化」是旧版的整页渲染方案，仅适合扫描件：整页转为 JPEG，文字不可选，请勿用于正式文档。
 
-```bash
-npm install
-npm start
-```
+## 档位
 
-## Deploy to Vercel
+| 档位 | 引擎 | JPEG 质量 | 图片最长边上限 |
+| --- | --- | --- | --- |
+| 轻度 | 保真 | 0.90 | 4096 px |
+| 标准 | 保真 | 0.80 | 2560 px |
+| 强力 | 保真 | 0.62 | 1600 px |
+| 整页图片化 | 渲染重组 | 0.60 | 1.5 倍渲染 |
 
-```bash
-npm install -g vercel
-vercel
-```
+## 技术与部署
 
-## How Compression Works
+- 前端：原生 HTML/CSS/JS（`index.html` + `app.js`），无构建步骤
+- 库：PDF.js 3.11.174 与 pdf-lib 1.17.1，均为本地文件（`vendor/`），不依赖 CDN，断网/国内网络也能加载
+- 部署：Vercel 静态站点（`vercel.json` 将仓库全部文件作为静态资源发布，含 `assets/` 与 `vendor/`）
+- 本地运行：`npm start`（node server.js，端口 3000）或任意静态服务器
 
-The tool uses pdf-lib to optimize PDFs by:
-1. Removing duplicate fonts and resources
-2. Flattening annotations
-3. Removing document metadata
-4. Optimizing PDF structure
+## 历史说明
 
-For image-heavy PDFs, additional compression is applied via canvas resampling.
-
-## Note
-
-This is a client-side only solution. No server-side processing required.
+仓库中保留了早期版本备查：`app.py` + `utils/` 是 Flask + Ghostscript 的服务端方案，`templates/index.html` 是其页面；当前线上以根目录的纯前端版为准。

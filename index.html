@@ -218,12 +218,13 @@
         /* 压缩选项 */
         .quality-options {
             display: flex;
+            flex-wrap: wrap;
             gap: 12px;
             margin-top: 24px;
         }
 
         .quality-option {
-            flex: 1;
+            flex: 1 1 120px;
             padding: 16px 12px;
             border-radius: 12px;
             border: 2px solid rgba(255, 255, 255, 0.1);
@@ -547,17 +548,24 @@
         <div class="quality-options">
             <div class="quality-option" data-quality="light" onclick="selectQuality(this)">
                 <h4>轻度压缩</h4>
-                <p>几乎无损 · 体积略小</p>
+                <p>保留文字 · 图片高质量</p>
             </div>
             <div class="quality-option active" data-quality="standard" onclick="selectQuality(this)">
                 <h4>标准压缩</h4>
-                <p>良好平衡 · 推荐使用</p>
+                <p>保留文字 · 平衡推荐</p>
             </div>
             <div class="quality-option" data-quality="extreme" onclick="selectQuality(this)">
                 <h4>强力压缩</h4>
-                <p>最小体积 · 保持可读</p>
+                <p>保留文字 · 图片更小</p>
+            </div>
+            <div class="quality-option" data-quality="raster" onclick="selectQuality(this)">
+                <h4>整页图片化</h4>
+                <p>仅适合扫描件 · 文字不可选</p>
             </div>
         </div>
+        <p style="margin-top: 12px; font-size: 13px; color: rgba(255,255,255,0.5); text-align: center;">
+            前三档只重压缩文档里的图片，文字、矢量、链接与表单保持不变；扫描件可选「整页图片化」。
+        </p>
 
         <!-- 压缩按钮 -->
         <button class="btn-compress" id="btnCompress" onclick="startCompress()" disabled>
