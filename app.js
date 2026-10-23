@@ -618,7 +618,7 @@ function showResults(results) {
                             </div>
                             ${
                                 r.message
-                                    ? `<div class="result-item-detail" style="color: #7dd3fc">${escapeHtml(r.message)}</div>`
+                                    ? `<div class="result-item-detail" style="color: #d97706">${escapeHtml(r.message)}</div>`
                                     : ""
                             }
                         </div>
